@@ -23,6 +23,8 @@ extern "C" {
 #define DISP_SPI_MOSI CONFIG_LVGL_DISP_SPI_MOSI
 #define DISP_SPI_CLK CONFIG_LVGL_DISP_SPI_CLK
 #define DISP_SPI_CS CONFIG_LVGL_DISP_SPI_CS
+#define DISP_SPI_DC CONFIG_LVGL_DISP_PIN_DC
+
 
 
 /**********************
@@ -33,8 +35,10 @@ extern "C" {
  * GLOBAL PROTOTYPES
  **********************/
 void disp_spi_init(void);
+void disp_spi_send_cmd(uint8_t data);
 void disp_spi_send_data(uint8_t * data, uint16_t length);
-void disp_spi_send_colors(uint8_t * data, uint16_t length);
+void disp_spi_send_color(uint8_t * data, uint16_t length);
+
 bool disp_spi_is_busy(void);
 
 /**********************

@@ -178,7 +178,7 @@ static void ili9341_send_cmd(uint8_t cmd)
 {
 	  while(disp_spi_is_busy()) {}
 	  gpio_set_level(ILI9341_DC, 0);	 /*Command mode*/
-	  disp_spi_send_data(&cmd, 1);
+	  disp_spi_send_cmd(cmd);
 }
 
 static void ili9341_send_data(void * data, uint16_t length)
@@ -192,6 +192,6 @@ static void ili9341_send_color(void * data, uint16_t length)
 {
 		while(disp_spi_is_busy()) {}
     gpio_set_level(ILI9341_DC, 1);   /*Data mode*/
-    disp_spi_send_colors(data, length);
+    disp_spi_send_data(data, length);
 }
 

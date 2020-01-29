@@ -31,6 +31,19 @@ menu "LittlevGL (LVGL)"
 
     endchoice
 
+    choice LVGL_DISPLAY_HW
+        prompt "Select TFT hardware"
+        
+        help 
+            Select the type of TFT screen
+
+        config LVGL_ILI9341
+            bool "ILI9341"
+        config LVGL_ST7735
+            bool "ST7735"
+
+    endchoice
+
     config LVGL_DISPLAY_WIDTH
         int
         prompt "TFT display width in pixels." if LVGL_PREDEFINED_DISPLAY_NONE

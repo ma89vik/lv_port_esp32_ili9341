@@ -15,7 +15,15 @@
 #include <freertos/semphr.h>
 #include "freertos/task.h"
 #include "lvgl/lvgl.h"
+
+#ifdef CONFIG_LVGL_ILI9341
 #include "ili9341.h"
+#endif
+
+#ifdef CONFIG_LVGL_ST7735
+#include "st7735.h"
+#endif
+
 
 /*********************
  *      DEFINES
@@ -29,6 +37,7 @@
  *  STATIC PROTOTYPES
  **********************/
 static void IRAM_ATTR spi_ready (spi_transaction_t *trans);
+static void spi_pre_transfer_callback(spi_transaction_t *t);
 
 /**********************
  *  STATIC VARIABLES
@@ -59,11 +68,11 @@ void disp_spi_init(void)
     };
 
     spi_device_interface_config_t devcfg={
-            .clock_speed_hz=40*1000*1000,           //Clock out at 40 MHz
+            .clock_speed_hz=10*1000*1000,           //Clock out at 40 MHz
             .mode=0,                                //SPI mode 0
             .spics_io_num=DISP_SPI_CS,              //CS pin
             .queue_size=1,
-            .pre_cb=NULL,
+            .pre_cb=spi_pre_transfer_callback,
             .post_cb=spi_ready,
             .flags = SPI_DEVICE_HALFDUPLEX
     };
@@ -75,6 +84,25 @@ void disp_spi_init(void)
     //Attach the LCD to the SPI bus
     ret=spi_bus_add_device(HSPI_HOST, &devcfg, &spi);
     assert(ret==ESP_OK);
+
+    spi_color_sent = false;
+}
+
+void disp_spi_send_cmd(uint8_t cmd)
+{
+
+    while(spi_trans_in_progress);
+
+    spi_transaction_t t = {
+        .length = 8, // transaction length is in bits
+        .tx_buffer = &cmd,
+        .user = (void*)0
+    };
+
+    spi_trans_in_progress = true;
+    spi_color_sent = false;             //Mark the "lv_flush_ready" NOT needs to be called in "spi_ready"
+    spi_device_queue_trans(spi, &t, portMAX_DELAY);
+
 }
 
 void disp_spi_send_data(uint8_t * data, uint16_t length)
@@ -85,16 +113,16 @@ void disp_spi_send_data(uint8_t * data, uint16_t length)
 
     spi_transaction_t t = {
         .length = length * 8, // transaction length is in bits
-        .tx_buffer = data
+        .tx_buffer = data,
+        .user = (void*)1
     };
-
+    
     spi_trans_in_progress = true;
-    spi_color_sent = false;             //Mark the "lv_flush_ready" NOT needs to be called in "spi_ready"
+    spi_color_sent = false;              //Mark the "lv_flush_ready" needs NOT to be called in "spi_ready"
     spi_device_queue_trans(spi, &t, portMAX_DELAY);
-
 }
 
-void disp_spi_send_colors(uint8_t * data, uint16_t length)
+void disp_spi_send_color(uint8_t * data, uint16_t length)
 {
     if (length == 0) return;           //no need to send anything
 
@@ -102,7 +130,8 @@ void disp_spi_send_colors(uint8_t * data, uint16_t length)
 
     spi_transaction_t t = {
         .length = length * 8, // transaction length is in bits
-        .tx_buffer = data
+        .tx_buffer = data,
+        .user = (void*)1
     };
     
     spi_trans_in_progress = true;
@@ -116,6 +145,12 @@ bool disp_spi_is_busy(void)
     return spi_trans_in_progress;
 }
 
+static void spi_pre_transfer_callback(spi_transaction_t *t)
+{
+    int dc=(int)t->user;
+    gpio_set_level(DISP_SPI_DC, dc);
+}
+
 /**********************
  *   STATIC FUNCTIONS
  **********************/
@@ -125,5 +160,6 @@ static void IRAM_ATTR spi_ready (spi_transaction_t *trans)
     spi_trans_in_progress = false;
 
     lv_disp_t * disp = lv_refr_get_disp_refreshing();
+
     if(spi_color_sent) lv_disp_flush_ready(&disp->driver);
 }
