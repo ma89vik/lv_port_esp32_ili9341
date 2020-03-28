@@ -37,7 +37,7 @@
  *  STATIC PROTOTYPES
  **********************/
 static void IRAM_ATTR spi_ready (spi_transaction_t *trans);
-static void spi_pre_transfer_callback(spi_transaction_t *t);
+static void IRAM_ATTR spi_pre_transfer_callback(spi_transaction_t *t);
 
 /**********************
  *  STATIC VARIABLES
@@ -145,7 +145,7 @@ bool disp_spi_is_busy(void)
     return spi_trans_in_progress;
 }
 
-static void spi_pre_transfer_callback(spi_transaction_t *t)
+static void IRAM_ATTR spi_pre_transfer_callback(spi_transaction_t *t)
 {
     int dc=(int)t->user;
     gpio_set_level(DISP_SPI_DC, dc);

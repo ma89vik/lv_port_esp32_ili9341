@@ -6,6 +6,8 @@
  * Original repostory: https://github.com/Matiasus/ST7735.
  *
  * Adaptations to ESP-IDF (c) 2020 Ivan Grokhotkov
+ * 
+ * Adaptations to littlevGL 2020 Marius Vikhammer
  */
 
 #include <stdio.h>
@@ -29,10 +31,8 @@ static void st7735_commands(const uint8_t *commands);
 
 static void st7735_send_command(uint8_t);
 static void st7735_send_data8(uint8_t);
-static void st7735_send_data16(uint16_t);
 static void st7735_delay_ms(uint8_t);
 
-static void st7735_logical_to_lcd(int *x, int* y);
 
 /** @array Init command */
 static const uint8_t st7735_init_commands[] = {
@@ -67,7 +67,7 @@ static const uint8_t st7735_init_commands[] = {
          0x03,  // 3 lines back porch
            10,  // 10 ms delay
     // Inversion mode off
-     INVOFF,
+     INVON,
         DELAY,  
            10,
     // Memory access ctrl (directions), 
@@ -260,10 +260,17 @@ static void st7735_send_data8(uint8_t data)
     disp_spi_send_data(&data, 1);
 }
 
-static void st7735_send_data16(uint16_t data)
+/*static void st7735_send_data16(uint16_t data)
 {    
   while(disp_spi_is_busy()) {}
   disp_spi_send_color(&data, 2);
+
+}*/
+
+static void st7735_send_data16(uint16_t* data, int len)
+{    
+  while(disp_spi_is_busy()) {}
+    disp_spi_send_color(data, 2*len);
 
 }
 
@@ -319,18 +326,13 @@ void st7735_update_screen(void)
 
 void st7735_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t * color_map)
 {
-  st7735_set_window(area->x1 + MIN_X, area->x2 + MIN_X, area->y1 + MIN_Y, area->y2 + MIN_Y);
 
-  // access to RAM
-  st7735_send_command(RAMWR);
+    st7735_set_window(area->x1 + MIN_X, area->x2 + MIN_X, area->y1 + MIN_Y, area->y2 + MIN_Y);
 
-
-	uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-
-  for (int i = 0; i<size; i++){
-      st7735_send_data16(color_map[i].full);
-
-  }
+    // access to RAM
+    st7735_send_command(RAMWR);
+    uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
+    st7735_send_data16((uint16_t*)color_map, size);
 
 }
 
