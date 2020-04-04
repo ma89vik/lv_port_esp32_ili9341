@@ -270,7 +270,7 @@ static void st7735_send_data8(uint8_t data)
 static void st7735_send_data16(uint16_t* data, int len)
 {    
   while(disp_spi_is_busy()) {}
-    disp_spi_send_color(data, 2*len);
+    disp_spi_send_color((uint8_t*)data, 2*len);
 
 }
 
